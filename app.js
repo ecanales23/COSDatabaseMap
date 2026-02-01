@@ -106,6 +106,20 @@ function initMap() {
         subdomains: 'abcd',
         maxZoom: 19
     }).addTo(map);
+
+    // Add legend to map
+    const legend = L.control({ position: 'bottomleft' });
+    legend.onAdd = function() {
+        const div = L.DomUtil.create('div', 'map-legend');
+        div.innerHTML = `
+            <div class="legend-title">System Types</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#10b981"></span> Individual GSHP</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#3b82f6"></span> 4th Gen District H&C</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#f59e0b"></span> 5th Gen District H&C</div>
+        `;
+        return div;
+    };
+    legend.addTo(map);
 }
 
 function addMarkersToMap(systems) {
@@ -276,13 +290,12 @@ function showSystemDetails(system) {
         `;
     }
 
-    // Contact & Resources
-    if (showField(system.contact) || showField(system.sources)) {
+    // Resources (sources only)
+    if (showField(system.sources)) {
         sectionsHtml += `
             <div class="resources">
-                <h4>Contact & Resources</h4>
-                ${showField(system.contact) ? `<p><strong>Contact:</strong> ${system.contact}</p>` : ''}
-                ${showField(system.sources) ? `<p><strong>Sources:</strong> ${system.sources}</p>` : ''}
+                <h4>Resources</h4>
+                <p><strong>Sources:</strong> ${system.sources}</p>
             </div>
         `;
     }
