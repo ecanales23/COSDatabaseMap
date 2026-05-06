@@ -1,8 +1,8 @@
 // Initialize the map
 let map;
 let markers = [];
-let allSystems = geothermalSystems;
-let welcomeContent = ''; // Store original welcome content
+let allProjects = communitySolarProjects;
+let welcomeContent = '';
 
 // State decarbonization goals (Source: CESA 100% Clean Energy Collaborative)
 const stateDecarbGoals = {
@@ -33,23 +33,35 @@ const stateDecarbGoals = {
     "Wisconsin": { target: "100% carbon-free electricity", year: 2050, type: "Goal" }
 };
 
-// Extract state from location string (e.g., "Bismarck, North Dakota" -> "North Dakota")
-function getStateFromLocation(location) {
-    if (!location) return null;
-    const parts = location.split(',');
-    if (parts.length >= 2) {
-        return parts[parts.length - 1].trim();
-    }
-    return null;
+// US state abbreviation → full name lookup
+const stateNames = {
+    "AL":"Alabama","AK":"Alaska","AZ":"Arizona","AR":"Arkansas","CA":"California",
+    "CO":"Colorado","CT":"Connecticut","DE":"Delaware","DC":"District of Columbia",
+    "FL":"Florida","GA":"Georgia","HI":"Hawaii","ID":"Idaho","IL":"Illinois",
+    "IN":"Indiana","IA":"Iowa","KS":"Kansas","KY":"Kentucky","LA":"Louisiana",
+    "ME":"Maine","MD":"Maryland","MA":"Massachusetts","MI":"Michigan","MN":"Minnesota",
+    "MS":"Mississippi","MO":"Missouri","MT":"Montana","NE":"Nebraska","NV":"Nevada",
+    "NH":"New Hampshire","NJ":"New Jersey","NM":"New Mexico","NY":"New York",
+    "NC":"North Carolina","ND":"North Dakota","OH":"Ohio","OK":"Oklahoma","OR":"Oregon",
+    "PA":"Pennsylvania","RI":"Rhode Island","SC":"South Carolina","SD":"South Dakota",
+    "TN":"Tennessee","TX":"Texas","UT":"Utah","VT":"Vermont","VA":"Virginia",
+    "WA":"Washington","WV":"West Virginia","WI":"Wisconsin","WY":"Wyoming"
+};
+
+function getStateName(project) {
+    // project.state may be a 2-letter code or a full name
+    const s = project.state;
+    if (!s || s === 'Unknown') return null;
+    if (s.length === 2) return stateNames[s.toUpperCase()] || null;
+    return s;
 }
 
 // Initialize map when page loads
 document.addEventListener('DOMContentLoaded', function() {
     initMap();
-    addMarkersToMap(allSystems);
+    addMarkersToMap(allProjects);
     setupEventListeners();
     setupResizeHandle();
-    // Store the original welcome content
     welcomeContent = document.getElementById('info-panel').innerHTML;
 });
 
@@ -74,9 +86,7 @@ function setupResizeHandle() {
         const totalWidth = containerRect.width;
         const minMap = 300;
         const minPanel = 250;
-
         if (offsetX < minMap || offsetX > totalWidth - minPanel) return;
-
         const mapFr = offsetX / totalWidth;
         const panelFr = 1 - mapFr;
         container.style.gridTemplateColumns = `${mapFr}fr 6px ${panelFr}fr`;
@@ -95,47 +105,42 @@ function setupResizeHandle() {
 }
 
 function initMap() {
-    // Initialize the map centered on the continental US
-    map = L.map('map', {
-        zoomControl: true
-    }).setView([39.8283, -98.5795], 4);
+    map = L.map('map', { zoomControl: true }).setView([39.8283, -98.5795], 4);
 
-    // Use CartoDB Positron for a clean, minimal map style
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19
     }).addTo(map);
 
-    // Add legend to map
+    // Legend
     const legend = L.control({ position: 'bottomleft' });
     legend.onAdd = function() {
         const div = L.DomUtil.create('div', 'map-legend');
         div.innerHTML = `
-            <div class="legend-title">System Types</div>
-            <div class="legend-row"><span class="legend-dot" style="background:#10b981"></span> Individual GSHP</div>
-            <div class="legend-row"><span class="legend-dot" style="background:#3b82f6"></span> 4th Gen District H&C</div>
-            <div class="legend-row"><span class="legend-dot" style="background:#f59e0b"></span> 5th Gen District H&C</div>
+            <div class="legend-title">Utility Type</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#10b981"></span> Electric Cooperative</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#3b82f6"></span> Investor-Owned Utility</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#f59e0b"></span> Municipal Utility</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#8b5cf6"></span> Consumer-Owned Utility</div>
+            <div class="legend-row"><span class="legend-dot" style="background:#6b7280"></span> Other</div>
         `;
         return div;
     };
     legend.addTo(map);
 }
 
-function addMarkersToMap(systems) {
-    // Clear existing markers
-    markers.forEach(marker => map.removeLayer(marker));
+function addMarkersToMap(projects) {
+    markers.forEach(m => map.removeLayer(m));
     markers = [];
 
-    // Add new markers
-    systems.forEach(system => {
-        const markerColor = getMarkerColor(system.systemType);
+    projects.forEach(project => {
+        const color = getMarkerColor(project.utilityType);
 
-        // Create custom marker icon - clean, modern style
         const customIcon = L.divIcon({
             className: 'custom-marker',
             html: `<div class="marker-pin" style="
-                background-color: ${markerColor};
+                background-color: ${color};
                 width: 14px;
                 height: 14px;
                 border-radius: 50%;
@@ -147,283 +152,153 @@ function addMarkersToMap(systems) {
             iconAnchor: [7, 7]
         });
 
-        const marker = L.marker([system.lat, system.lng], { icon: customIcon })
-            .addTo(map);
+        const marker = L.marker([project.lat, project.lng], { icon: customIcon }).addTo(map);
 
-        // Add tooltip for hover (shows on mouse over)
+        const sizeMw = project.sizeMwAc != null
+            ? `${project.sizeMwAc} MW-AC`
+            : 'Size unknown';
+
         const tooltipContent = `
-            <strong>${system.name}</strong><br>
-            ${system.location}<br>
-            <em>${getSystemTypeName(system.systemType)}</em>
+            <strong>${project.name}</strong><br>
+            ${project.location}<br>
+            <em>${getUtilityTypeName(project.utilityType)}</em><br>
+            ${sizeMw}${project.yearOfInterconnection ? ' · ' + project.yearOfInterconnection : ''}
         `;
-        marker.bindTooltip(tooltipContent, {
-            permanent: false,
-            direction: 'top',
-            offset: [0, -10]
-        });
 
-        // Add popup with basic info (shows on click)
+        marker.bindTooltip(tooltipContent, { permanent: false, direction: 'top', offset: [0, -10] });
         marker.bindPopup(tooltipContent);
-
-        // Add click event to show details in info panel
-        marker.on('click', function() {
-            showSystemDetails(system);
-        });
+        marker.on('click', function() { showProjectDetails(project); });
 
         markers.push(marker);
     });
 }
 
-function showSystemDetails(system) {
+function showProjectDetails(project) {
     const infoPanel = document.getElementById('info-panel');
+    const show = (v) => v && v !== 'Unknown' && v !== '' && v !== null && v !== undefined;
 
-    // Helper function to show field if not "Unknown"
-    const showField = (value) => value && value !== 'Unknown' && value !== 'N/A';
+    const stateName = getStateName(project);
+    const stateGoal = stateName ? stateDecarbGoals[stateName] : null;
 
-    // Build sections conditionally
     let sectionsHtml = '';
 
     // Project Overview
     sectionsHtml += `
         <div class="detail-section">
             <h4>Project Overview</h4>
-            <p><strong>Location:</strong> ${system.location}</p>
-            <p><strong>Status:</strong> ${system.status}</p>
-            ${showField(system.siteType) ? `<p><strong>Site Type:</strong> ${system.siteType}</p>` : ''}
-            ${showField(system.capacity) ? `<p><strong>Capacity:</strong> ${system.capacity}</p>` : ''}
+            <p><strong>Location:</strong> ${project.location}</p>
+            ${show(project.address) ? `<p><strong>Address:</strong> ${project.address}</p>` : ''}
+            ${show(project.yearOfInterconnection) ? `<p><strong>Year of Interconnection:</strong> ${project.yearOfInterconnection}</p>` : ''}
         </div>
     `;
 
+    // Utility Information
+    sectionsHtml += `
+        <div class="detail-section">
+            <h4>Utility Information</h4>
+            ${show(project.utility) ? `<p><strong>Utility:</strong> ${project.utility}</p>` : ''}
+            ${show(project.utilityTypeName) ? `<p><strong>Utility Type:</strong> ${project.utilityTypeName}</p>` : ''}
+            ${show(project.basicStructure) ? `<p><strong>Basic Structure:</strong> ${project.basicStructure}</p>` : ''}
+        </div>
+    `;
+
+    // System Size
+    if (project.sizeMwAc != null || project.sizeMwDc != null) {
+        sectionsHtml += `
+            <div class="detail-section">
+                <h4>System Size</h4>
+                ${project.sizeMwAc != null ? `<p><strong>AC Capacity:</strong> ${project.sizeMwAc} MW-AC</p>` : ''}
+                ${project.sizeMwDc != null ? `<p><strong>DC Capacity:</strong> ${project.sizeMwDc} MW-DC</p>` : ''}
+                <p><strong>Scale:</strong> ${getSizeCategoryLabel(project.sizeCategory)}</p>
+            </div>
+        `;
+    }
+
     // State Decarbonization Goal
-    const stateName = getStateFromLocation(system.location);
-    const stateGoal = stateName ? stateDecarbGoals[stateName] : null;
     sectionsHtml += `
         <div class="detail-section state-goal-section">
             <h4>State Decarbonization Goal</h4>
             ${stateGoal
                 ? `<p><strong>${stateName}</strong> has a <strong>${stateGoal.type.toLowerCase()}</strong> for <strong>${stateGoal.target}</strong> by <strong>${stateGoal.year}</strong>.</p>`
-                : `<p>${stateName || 'This state'} does not currently have a 100% clean energy target.</p>`
+                : `<p>${stateName || 'This state'} does not currently have a tracked 100% clean energy target.</p>`
             }
         </div>
     `;
 
-    // Scale & Impact
-    if (showField(system.buildings) || showField(system.households) || showField(system.population)) {
-        sectionsHtml += `
-            <div class="detail-section">
-                <h4>Scale & Impact</h4>
-                ${showField(system.buildings) ? `<p><strong>Buildings:</strong> ${system.buildings}</p>` : ''}
-                ${showField(system.households) ? `<p><strong>Households:</strong> ${system.households}</p>` : ''}
-                ${showField(system.population) ? `<p><strong>Population Served:</strong> ${system.population}</p>` : ''}
-            </div>
-        `;
-    }
-
-    // Benefits
-    if (showField(system.emissionsBenefits) || showField(system.operationalSuccesses)) {
-        sectionsHtml += `
-            <div class="detail-section">
-                <h4>Quantified Benefits</h4>
-                ${showField(system.emissionsBenefits) ? `<p><strong>Emissions:</strong> ${system.emissionsBenefits}</p>` : ''}
-                ${showField(system.operationalSuccesses) ? `<p><strong>Operational Successes:</strong> ${system.operationalSuccesses}</p>` : ''}
-            </div>
-        `;
-    }
-
-    // Technical Details - with explanatory context
-    if (showField(system.heatPump) || showField(system.thermalResources) || showField(system.distribution)) {
-        sectionsHtml += `
-            <div class="detail-section">
-                <h4>Technical Details</h4>
-                <p class="section-explainer">How this system captures and distributes geothermal energy:</p>
-                ${showField(system.heatPump) ? `
-                    <div class="tech-item">
-                        <p><strong>Heat Pump Type:</strong> ${system.heatPump}</p>
-                        <p class="tech-explainer">${getHeatPumpExplanation(system.heatPump)}</p>
-                    </div>
-                ` : ''}
-                ${showField(system.thermalResources) ? `
-                    <div class="tech-item">
-                        <p><strong>Underground Infrastructure:</strong> ${system.thermalResources}</p>
-                        <p class="tech-explainer">These are the boreholes and underground loops that exchange heat with the earth's stable temperature.</p>
-                    </div>
-                ` : ''}
-                ${showField(system.distribution) ? `
-                    <div class="tech-item">
-                        <p><strong>Distribution Network:</strong> ${system.distribution}</p>
-                        <p class="tech-explainer">The pipe network that carries heated or cooled water to connected buildings.</p>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }
-
-    // Financial Details
-    if (showField(system.cost) || showField(system.funding) || showField(system.subscription)) {
-        sectionsHtml += `
-            <div class="detail-section">
-                <h4>Financial Details</h4>
-                ${showField(system.cost) ? `<p><strong>Total Cost:</strong> ${system.cost}</p>` : ''}
-                ${showField(system.funding) ? `<p><strong>Funding:</strong> ${system.funding}</p>` : ''}
-                ${showField(system.subscription) ? `<p><strong>Subscription Info:</strong> ${system.subscription}</p>` : ''}
-            </div>
-        `;
-    }
-
-    // Ownership
-    if (showField(system.ownership)) {
-        sectionsHtml += `
-            <div class="detail-section">
-                <h4>Ownership Model</h4>
-                <p>${system.ownership}</p>
-            </div>
-        `;
-    }
-
-    // Additional Information
-    if (showField(system.additionalInfo)) {
-        sectionsHtml += `
-            <div class="detail-section">
-                <h4>Additional Information</h4>
-                <p>${system.additionalInfo}</p>
-            </div>
-        `;
-    }
-
-    // Resources (sources only)
-    if (showField(system.sources)) {
-        sectionsHtml += `
-            <div class="resources">
-                <h4>Resources</h4>
-                <p><strong>Sources:</strong> ${system.sources}</p>
-            </div>
-        `;
-    }
-
-    // Get system type explanation
-    const systemExplanation = getSystemTypeExplanation(system.systemType);
-
     infoPanel.innerHTML = `
         <div class="project-details">
             <button class="back-button" onclick="showWelcome()">← Back to Overview</button>
-            <h3>${system.name}</h3>
+            <h3>${project.name}</h3>
             <div class="system-type-info">
-                <span class="system-badge ${system.systemType}">${getSystemTypeName(system.systemType)}</span>
-                <p class="system-type-explainer">${systemExplanation.simple}</p>
+                <span class="system-badge ${project.utilityType}">${getUtilityTypeName(project.utilityType)}</span>
+                <p class="system-type-explainer">${getUtilityTypeExplanation(project.utilityType)}</p>
             </div>
             ${sectionsHtml}
         </div>
     `;
 }
 
-// Function to show welcome/overview content
 function showWelcome() {
-    const infoPanel = document.getElementById('info-panel');
-    infoPanel.innerHTML = welcomeContent;
+    document.getElementById('info-panel').innerHTML = welcomeContent;
 }
 
 function setupEventListeners() {
-    // Filter by system type
-    const systemTypeFilter = document.getElementById('system-type');
-    systemTypeFilter.addEventListener('change', filterSystems);
-
-    // Filter by status
-    const statusFilter = document.getElementById('status-filter');
-    statusFilter.addEventListener('change', filterSystems);
-
-    // Search functionality
-    const searchInput = document.getElementById('search');
-    searchInput.addEventListener('input', filterSystems);
+    document.getElementById('utility-type').addEventListener('change', filterProjects);
+    document.getElementById('size-filter').addEventListener('change', filterProjects);
+    document.getElementById('year-filter').addEventListener('change', filterProjects);
+    document.getElementById('search').addEventListener('input', filterProjects);
 }
 
-// Categorize a status string into a simple category
-function getStatusCategory(status) {
-    const s = status.toLowerCase();
-    if (s.startsWith('operating')) return 'operating';
-    if (s.startsWith('under construction') || s.startsWith('construction') || s.startsWith('designed')) return 'construction';
-    if (s.startsWith('design phase')) return 'design';
-    if (s.startsWith('pre construction') || s.includes('feasibility')) return 'feasibility';
-    if (s.includes('decommissioned') || s.includes('decomissioned') || s.includes('no longer operating')) return 'decommissioned';
-    return 'unknown';
-}
+function filterProjects() {
+    const utilityType = document.getElementById('utility-type').value;
+    const sizeFilter  = document.getElementById('size-filter').value;
+    const yearFilter  = document.getElementById('year-filter').value;
+    const searchTerm  = document.getElementById('search').value.toLowerCase();
 
-function filterSystems() {
-    const systemType = document.getElementById('system-type').value;
-    const statusFilter = document.getElementById('status-filter').value;
-    const searchTerm = document.getElementById('search').value.toLowerCase();
+    let filtered = allProjects;
 
-    let filteredSystems = allSystems;
-
-    // Filter by system type
-    if (systemType !== 'all') {
-        filteredSystems = filteredSystems.filter(system => system.systemType === systemType);
+    if (utilityType !== 'all') {
+        filtered = filtered.filter(p => p.utilityType === utilityType);
     }
-
-    // Filter by status
-    if (statusFilter !== 'all') {
-        filteredSystems = filteredSystems.filter(system => getStatusCategory(system.status) === statusFilter);
+    if (sizeFilter !== 'all') {
+        filtered = filtered.filter(p => p.sizeCategory === sizeFilter);
     }
-
-    // Filter by search term
+    if (yearFilter !== 'all') {
+        const [from, to] = yearFilter.split('-').map(Number);
+        filtered = filtered.filter(p => {
+            const y = p.yearOfInterconnection;
+            return y && y >= from && y <= (to || 9999);
+        });
+    }
     if (searchTerm) {
-        filteredSystems = filteredSystems.filter(system =>
-            system.name.toLowerCase().includes(searchTerm) ||
-            system.location.toLowerCase().includes(searchTerm) ||
-            system.description.toLowerCase().includes(searchTerm)
+        filtered = filtered.filter(p =>
+            (p.name     || '').toLowerCase().includes(searchTerm) ||
+            (p.location || '').toLowerCase().includes(searchTerm) ||
+            (p.utility  || '').toLowerCase().includes(searchTerm)
         );
     }
 
-    // Update markers on map
-    addMarkersToMap(filteredSystems);
+    addMarkersToMap(filtered);
 
-    // If only one result, show its details
-    if (filteredSystems.length === 1) {
-        showSystemDetails(filteredSystems[0]);
-        map.setView([filteredSystems[0].lat, filteredSystems[0].lng], 10);
+    if (filtered.length === 1) {
+        showProjectDetails(filtered[0]);
+        map.setView([filtered[0].lat, filtered[0].lng], 10);
     }
 }
 
-function formatKey(key) {
-    // Convert camelCase to Title Case
-    return key
-        .replace(/([A-Z])/g, ' $1')
-        .replace(/^./, str => str.toUpperCase());
+// ── Helper functions ────────────────────────────────────────────────
+
+function getSizeCategoryLabel(cat) {
+    return { small: 'Small (< 1 MW)', medium: 'Medium (1–10 MW)', large: 'Large (10+ MW)', unknown: 'Unknown' }[cat] || cat;
 }
 
-// Get plain-language explanation for heat pump types
-function getHeatPumpExplanation(heatPumpType) {
-    const type = heatPumpType.toLowerCase();
-
-    if (type.includes('gshp') || type.includes('ground source')) {
-        return 'Ground Source Heat Pumps use pipes buried underground to transfer heat. In winter, they extract warmth from the earth; in summer, they deposit heat back into the ground. They use 25-50% less electricity than conventional heating/cooling.';
-    }
-    if (type.includes('water source') || type.includes('wshp')) {
-        return 'Water Source Heat Pumps connect to a shared water loop. They extract or reject heat to this common water system, allowing buildings to share thermal energy efficiently.';
-    }
-    if (type.includes('air source') || type.includes('ashp')) {
-        return 'Air Source Heat Pumps extract heat from outdoor air. While less efficient than ground source in extreme temperatures, they are simpler to install.';
-    }
-    return 'Heat pumps move thermal energy between the building and an external source, providing both heating and cooling with high efficiency.';
-}
-
-// Get detailed explanation for system types
-function getSystemTypeExplanation(systemType) {
+function getUtilityTypeExplanation(type) {
     const explanations = {
-        'gshp': {
-            name: 'Individual Ground Source Heat Pump',
-            simple: 'A single building uses underground pipes to heat and cool itself.',
-            detail: 'This system serves one building with its own dedicated underground loop. Pipes are buried in the ground where temperatures stay constant year-round (around 50-55°F). The heat pump extracts warmth in winter and deposits excess heat in summer.'
-        },
-        '4gdhc': {
-            name: '4th Generation District Heating & Cooling',
-            simple: 'A central plant provides heating and cooling to multiple buildings through shared pipes.',
-            detail: 'This district system uses a central energy station with large heat pumps that heat or cool water to moderate temperatures (around 120-160°F for heating). This water is distributed through underground pipes to serve multiple buildings, which is more efficient than each building having its own system.'
-        },
-        '5gdhc': {
-            name: '5th Generation District Heating & Cooling',
-            simple: 'Buildings share a common underground water loop and can exchange heat with each other.',
-            detail: 'The most advanced district system: buildings connect to a shared ambient temperature water loop (60-80°F). Each building has its own heat pump to extract what it needs. The key innovation is that buildings can share thermal energy - a building needing cooling can send its excess heat to one that needs heating, dramatically improving overall efficiency.'
-        }
+        'cooperative':    'A member-owned electric cooperative — subscribers are often co-op members sharing the output of the solar project.',
+        'investor-owned': 'A privately held, investor-owned utility that offers community solar subscriptions to customers in its service territory.',
+        'municipal':      'A city- or county-owned utility providing locally governed community solar options to residents and businesses.',
+        'consumer-owned': 'A consumer-owned utility (such as a public utility district) structured to serve its customers rather than outside investors.',
+        'other':          'A utility or project structure that does not fit neatly into the standard categories above.',
     };
-    return explanations[systemType] || { name: systemType, simple: '', detail: '' };
+    return explanations[type] || '';
 }

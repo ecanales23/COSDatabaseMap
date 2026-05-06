@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>U.S. Geothermal Systems Database</title>
+    <title>U.S. Community Solar Projects Database</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,37 +13,47 @@
 <body>
     <div class="container">
         <header>
-            <h1>U.S. Geothermal Systems Database Map</h1>
-            <p class="subtitle">Interactive map of geothermal heating and cooling projects across the United States</p>
+            <h1>U.S. Community Solar Projects Database Map</h1>
+            <p class="subtitle">Interactive map of community solar projects across the United States</p>
         </header>
 
         <div class="controls">
             <div class="filter-section">
-                <label for="system-type">Filter by System Type:</label>
-                <select id="system-type">
-                    <option value="all">All Systems</option>
-                    <option value="gshp">Individual GSHP</option>
-                    <option value="4gdhc">4th Gen District H&C</option>
-                    <option value="5gdhc">5th Gen District H&C</option>
+                <label for="utility-type">Filter by Utility Type:</label>
+                <select id="utility-type">
+                    <option value="all">All Utility Types</option>
+                    <option value="cooperative">Electric Cooperative</option>
+                    <option value="investor-owned">Investor-Owned Utility</option>
+                    <option value="municipal">Municipal Utility</option>
+                    <option value="consumer-owned">Consumer-Owned Utility</option>
+                    <option value="other">Other</option>
                 </select>
             </div>
 
             <div class="filter-section">
-                <label for="status-filter">Filter by Status:</label>
-                <select id="status-filter">
-                    <option value="all">All Statuses</option>
-                    <option value="operating">Operating</option>
-                    <option value="construction">Under Construction</option>
-                    <option value="design">Design Phase</option>
-                    <option value="feasibility">Feasibility / Pre-Construction</option>
-                    <option value="decommissioned">Decommissioned</option>
-                    <option value="unknown">Unknown</option>
+                <label for="size-filter">Filter by System Size:</label>
+                <select id="size-filter">
+                    <option value="all">All Sizes</option>
+                    <option value="small">Small (&lt; 1 MW)</option>
+                    <option value="medium">Medium (1–10 MW)</option>
+                    <option value="large">Large (10+ MW)</option>
+                </select>
+            </div>
+
+            <div class="filter-section">
+                <label for="year-filter">Filter by Year:</label>
+                <select id="year-filter">
+                    <option value="all">All Years</option>
+                    <option value="2008-2012">2008–2012</option>
+                    <option value="2013-2016">2013–2016</option>
+                    <option value="2017-2020">2017–2020</option>
+                    <option value="2021-2025">2021–2025</option>
                 </select>
             </div>
 
             <div class="search-section">
                 <label for="search">Search:</label>
-                <input type="text" id="search" placeholder="Search by location or project name...">
+                <input type="text" id="search" placeholder="Search by project name, location, or utility...">
             </div>
         </div>
 
@@ -52,49 +62,50 @@
             <div class="resize-handle" id="resize-handle"></div>
             <div id="info-panel" class="info-panel">
                 <div class="info-placeholder">
-                    <h3>Welcome to the Geothermal Systems Database Map!</h3>
-                    <p>Click on any marker on the map to view detailed information about that geothermal project.</p>
+                    <h3>Welcome to the Community Solar Projects Map!</h3>
+                    <p>Click on any marker to view details about that community solar project.</p>
 
                     <div class="policy-highlight">
-                        <h4>Why Geothermal Energy?</h4>
+                        <h4>Why Community Solar?</h4>
                         <div class="policy-points">
                             <div class="policy-point">
                                 <div>
-                                    <strong>• Decarbonizing Buildings</strong>
-                                    <p>Buildings account for ~40% of U.S. energy consumption. Geothermal systems can reduce heating/cooling emissions by 50-80%, helping meet climate goals.</p>
+                                    <strong>• Access for All</strong>
+                                    <p>Community solar lets renters, low-income households, and those with unsuitable roofs access solar energy benefits without installing panels on their own home.</p>
                                 </div>
                             </div>
                             <div class="policy-point">
                                 <div>
-                                    <strong>• Long-Term Cost Savings</strong>
-                                    <p>Despite higher upfront costs, geothermal systems typically deliver 25-50% energy savings annually and last 25-50 years with minimal maintenance.</p>
+                                    <strong>• Lower Energy Bills</strong>
+                                    <p>Subscribers typically receive a credit on their electricity bill that reflects their share of the solar energy produced, often saving 5–15% annually.</p>
                                 </div>
                             </div>
                             <div class="policy-point">
                                 <div>
-                                    <strong>• Job Creation & Workforce Transition</strong>
-                                    <p>Geothermal installation creates local jobs and offers a pathway for gas utility workers to transition to clean energy careers.</p>
+                                    <strong>• Grid Decarbonization</strong>
+                                    <p>Community solar projects displace fossil-fuel generation at the grid level, contributing to state and federal clean energy mandates.</p>
                                 </div>
                             </div>
                             <div class="policy-point">
                                 <div>
-                                    <strong>• Grid Resilience</strong>
-                                    <p>Geothermal reduces peak electricity demand, easing strain on the grid during extreme weather when heating/cooling needs spike.</p>
+                                    <strong>• Local Economic Benefits</strong>
+                                    <p>Projects create local construction and operations jobs, and keep energy dollars circulating in communities rather than flowing to distant fuel suppliers.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
+
                     <div class="info-section glossary">
                         <h4>Key Terms Explained:</h4>
                         <dl>
-                            <dt>Heat Pump</dt>
-                            <dd>A device that moves heat from one place to another (like a refrigerator in reverse). It can both heat and cool buildings using much less energy than traditional furnaces or AC units.</dd>
-                            <dt>Borehole</dt>
-                            <dd>A narrow hole drilled into the ground (typically 200-500 feet deep) where pipes are installed to exchange heat with the earth.</dd>
-                            <dt>Thermal Resources</dt>
-                            <dd>The underground heat source or sink - the earth maintains a stable temperature year-round, making it an efficient source for heating in winter and cooling in summer.</dd>
-                            <dt>Distribution Network</dt>
-                            <dd>The system of underground pipes that carries heated or cooled water between the central system and connected buildings.</dd>
+                            <dt>Community Solar</dt>
+                            <dd>A shared solar installation whose electricity is credited to multiple subscribing households or businesses, allowing them to benefit from solar without rooftop panels.</dd>
+                            <dt>MW-AC / MW-DC</dt>
+                            <dd>AC (alternating current) capacity is the power delivered to the grid after conversion by inverters. DC (direct current) is the raw output of the solar panels. AC is typically 10–20% lower than DC.</dd>
+                            <dt>Interconnection Year</dt>
+                            <dd>The year the project was connected to the utility grid and began producing power for subscribers.</dd>
+                            <dt>Utility Type</dt>
+                            <dd>Whether the project is administered by an investor-owned utility, a consumer-owned or municipal utility, or a rural electric cooperative — each with different ownership and governance structures.</dd>
                         </dl>
                     </div>
                 </div>
@@ -102,8 +113,8 @@
         </div>
 
         <footer>
-            <p>Data source: MIT Renewable Energy Clinic | Last updated: January 2026</p>
-            <p style="font-size: 0.75em; color: #94a3b8; margin-top: 8px;">Version 2.0 - Modern UI Update</p>
+            <p>Data source: EIA Community Solar Project Locations | Last updated: May 2026</p>
+            <p style="font-size: 0.75em; color: #94a3b8; margin-top: 8px;">Community Solar Database Map</p>
         </footer>
     </div>
 
