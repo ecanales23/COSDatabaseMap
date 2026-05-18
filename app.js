@@ -13,6 +13,24 @@ let energyBurdenLegend = null;
 let energyBurdenData = null;
 const tractGeoJsonCache = {};
 
+// ─── Panel state ───────────────────────────────────────────────────────────
+const US_ZOOM_THRESHOLD = 6;
+
+const ENERGY_BURDEN_DATA = {
+  CO: { low: 100, moderate: 0,  high: 0, severe: 0 },
+  IN: { low: 93,  moderate: 7,  high: 0, severe: 0 },
+  MN: { low: 78,  moderate: 22, high: 0, severe: 0 },
+  NC: { low: 81,  moderate: 19, high: 0, severe: 0 },
+  SC: { low: 87,  moderate: 13, high: 0, severe: 0 },
+};
+
+const BURDEN_COLORS = {
+  low:      '#fde68a',
+  moderate: '#f59e0b',
+  high:     '#d97706',
+  severe:   '#92400e',
+};
+
 // ── Layer system ─────────────────────────────────────────────────────
 // Each layer has: a Leaflet layer object, a visible flag, and metadata.
 // To wire up real Census data, replace the `load` function for each layer
@@ -142,6 +160,14 @@ document.addEventListener('DOMContentLoaded', function() {
     loadStateFeatures();
     loadEnergyBurdenData();
     welcomeContent = document.getElementById('info-panel').innerHTML;
+
+    map.on('zoomend', () => {
+        if (map.getZoom() < US_ZOOM_THRESHOLD) {
+            document.getElementById('info-panel').dataset.projectSelected = 'false';
+            updateInfoPanel();
+        }
+    });
+    updateInfoPanel();
 });
 
 // Draggable resize handle between map and info panel
@@ -377,10 +403,270 @@ function addMarkersToMap(projects) {
 
         marker.bindTooltip(tooltipContent, { permanent: false, direction: 'top', offset: [0, -10] });
         marker.bindPopup(tooltipContent);
-        marker.on('click', function() { showProjectDetails(project); });
+        marker.on('click', function() { showProjectDetail(project); });
 
         markers.push(marker);
     });
+}
+
+// ─── Compute top-3 states by basicStructure category ───────────────────────
+function getTopStatesByOwnership() {
+    const categories = {};
+    communitySolarProjects.forEach(p => {
+        const cat = p.basicStructure || 'Unknown';
+        if (!categories[cat]) categories[cat] = {};
+        categories[cat][p.state] = (categories[cat][p.state] || 0) + 1;
+    });
+    const result = {};
+    Object.entries(categories).forEach(([cat, stateCounts]) => {
+        result[cat] = Object.entries(stateCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    });
+    return result;
+}
+
+// ─── Compute top-3 states by utilityType category ──────────────────────────
+function getTopStatesByUtility() {
+    const categories = {};
+    communitySolarProjects.forEach(p => {
+        const cat = p.utilityType || 'other';
+        if (!categories[cat]) categories[cat] = {};
+        categories[cat][p.state] = (categories[cat][p.state] || 0) + 1;
+    });
+    const result = {};
+    Object.entries(categories).forEach(([cat, stateCounts]) => {
+        result[cat] = Object.entries(stateCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    });
+    return result;
+}
+
+// ─── Render helpers ─────────────────────────────────────────────────────────
+function renderBurdenBars(showBars) {
+    if (!showBars) {
+        return `<p class="panel-subtext" style="font-style:italic;">
+      Toggle the <strong>Energy Burden Layer</strong> above to see census tract data for the top 5 states.
+    </p>`;
+    }
+    return `
+    <p class="panel-subtext" style="margin-bottom:10px;">
+      % of projects by burden level — none are sited in high or severe tracts.
+    </p>
+    ${Object.entries(ENERGY_BURDEN_DATA).map(([state, d]) => `
+      <div class="state-bar-row">
+        <span class="state-bar-label">${state}</span>
+        <div class="state-bar-track">
+          <div style="width:${d.low}%;background:${BURDEN_COLORS.low};height:100%;"></div>
+          <div style="width:${d.moderate}%;background:${BURDEN_COLORS.moderate};height:100%;"></div>
+          <div style="width:${d.high}%;background:${BURDEN_COLORS.high};height:100%;"></div>
+          <div style="width:${d.severe}%;background:${BURDEN_COLORS.severe};height:100%;"></div>
+        </div>
+        <span class="state-bar-pct">${d.low}/${d.moderate}</span>
+      </div>
+    `).join('')}
+    <div class="burden-legend">
+      <span><span class="legend-swatch" style="background:${BURDEN_COLORS.low}"></span>Low</span>
+      <span><span class="legend-swatch" style="background:${BURDEN_COLORS.moderate}"></span>Moderate</span>
+    </div>
+    <p class="panel-caveat">
+      Raises questions about whether LMI policies effectively direct projects to communities that need them most.
+    </p>`;
+}
+
+function renderCategoryBars(dataByCategory, labelMap, colorMap) {
+    return Object.entries(dataByCategory).map(([cat, top3]) => {
+        const displayName = labelMap[cat] || cat;
+        const color = (colorMap && colorMap[cat]) || '#6b7280';
+        return `
+      <div class="panel-category-block">
+        <p class="panel-category-label">${displayName}</p>
+        ${top3.map(([state, count]) => `
+          <div class="state-bar-row">
+            <span class="state-bar-label">${state}</span>
+            <div class="state-bar-track">
+              <div style="width:${Math.round((count / top3[0][1]) * 100)}%;background:${color};height:100%;border-radius:2px;"></div>
+            </div>
+            <span class="state-bar-pct">${count}</span>
+          </div>
+        `).join('')}
+      </div>`;
+    }).join('');
+}
+
+// ─── State energy burden comparison panel ──────────────────────────────────
+function renderStateBurdenComparison(stateCode) {
+    const panel = document.getElementById('info-panel');
+    const burdenVal = energyBurdenStateAvg[stateCode];
+    if (burdenVal == null) return;
+
+    const name = stateNames[stateCode] || stateCode;
+    const ranked = Object.entries(energyBurdenStateAvg).sort((a, b) => b[1] - a[1]);
+    const rank = ranked.findIndex(([code]) => code === stateCode) + 1;
+    const total = ranked.length;
+    const maxVal = ranked[0][1];
+    const projectCount = communitySolarProjects.filter(p => p.state === stateCode).length;
+
+    const burdenCat = EB_CATEGORIES.find(c => burdenVal < c.max) || EB_CATEGORIES[EB_CATEGORIES.length - 1];
+    const burdenClass = 'burden-' + burdenCat.label.toLowerCase();
+
+    const top10 = ranked.slice(0, 10);
+    const inTop10 = rank <= 10;
+
+    const barRows = top10.map(([code, val]) => {
+        const isSelected = code === stateCode;
+        const pct = Math.round((val / maxVal) * 100);
+        return `
+        <div class="state-bar-row" style="${isSelected ? 'font-weight:600;' : ''}">
+            <span class="state-bar-label" style="${isSelected ? 'color:#1e293b;' : ''}">${code}</span>
+            <div class="state-bar-track">
+                <div style="width:${pct}%;background:${isSelected ? '#d97706' : '#f59e0b'};height:100%;border-radius:2px;"></div>
+            </div>
+            <span class="state-bar-pct">${val.toFixed(1)}%</span>
+        </div>`;
+    }).join('');
+
+    const selectedRow = !inTop10 ? `
+        <div style="border-top:1px dashed #e2e8f0;margin:4px 0;padding-top:4px;">
+          <div class="state-bar-row" style="font-weight:600;">
+            <span class="state-bar-label" style="color:#1e293b;">${stateCode}</span>
+            <div class="state-bar-track">
+              <div style="width:${Math.round((burdenVal / maxVal) * 100)}%;background:#d97706;height:100%;border-radius:2px;"></div>
+            </div>
+            <span class="state-bar-pct">${burdenVal.toFixed(1)}%</span>
+          </div>
+        </div>` : '';
+
+    panel.innerHTML = `
+    <div class="info-placeholder">
+      <div class="panel-section">
+        <p class="panel-label">Energy burden — ${name}</p>
+        <span class="burden-badge ${burdenClass}">${burdenCat.label} — ${burdenVal.toFixed(1)}% avg</span>
+        <p class="panel-subtext" style="margin-top:6px;">
+          Ranked <strong>#${rank}</strong> of ${total} states &nbsp;·&nbsp;
+          <strong>${projectCount}</strong> community solar project${projectCount !== 1 ? 's' : ''}
+        </p>
+      </div>
+      <div class="panel-section">
+        <p class="panel-label">Top 10 most energy-burdened states</p>
+        <p class="panel-subtext">Avg % of household income spent on energy (DOE LEAD Tool).</p>
+        ${barRows}
+        ${selectedRow}
+      </div>
+    </div>`;
+}
+
+// ─── Main panel renderer ────────────────────────────────────────────────────
+function updateInfoPanel() {
+    const panel = document.getElementById('info-panel');
+    const zoom = map.getZoom();
+    const currentColorMode = document.getElementById('color-mode').value;
+    const burdenOn = document.getElementById('energy-burden-toggle').checked;
+    const isUSLevel = zoom < US_ZOOM_THRESHOLD;
+
+    if (!isUSLevel && panel.dataset.projectSelected === 'true') return;
+    if (!isUSLevel) {
+        const stateCode = document.getElementById('state-select').value;
+        if (stateCode && burdenOn) {
+            renderStateBurdenComparison(stateCode);
+        }
+        return;
+    }
+
+    let html = `
+    <div class="info-placeholder">
+      <div class="panel-section">
+        <p class="panel-label">About this map</p>
+        <h3>Community-owned solar &amp; energy burden</h3>
+        <p>Explore where community-owned solar projects exist relative to energy-burdened communities. Click any marker to see project details.</p>
+      </div>`;
+
+    if (currentColorMode === 'default') {
+        html += `
+      <div class="panel-section">
+        <p class="panel-label">Energy burden — top 5 states</p>
+        ${renderBurdenBars(burdenOn)}
+      </div>`;
+    } else if (currentColorMode === 'ownershipType') {
+        const ownershipLabels = {
+            'Rural electric cooperative': 'Rural electric cooperative',
+            'Cooperative':                'Cooperative (general)',
+            'Publicly owned utility':     'Publicly owned utility',
+            'Consumer-owned utility':     'Consumer-owned utility',
+        };
+        const ownershipColors = {
+            'Rural electric cooperative': '#10b981',
+            'Cooperative':                '#f59e0b',
+            'Publicly owned utility':     '#3b82f6',
+            'Consumer-owned utility':     '#8b5cf6',
+        };
+        html += `
+      <div class="panel-section">
+        <p class="panel-label">Top 3 states by ownership type</p>
+        <p class="panel-subtext">Project count per category.</p>
+        ${renderCategoryBars(getTopStatesByOwnership(), ownershipLabels, ownershipColors)}
+      </div>`;
+    } else if (currentColorMode === 'utilityType') {
+        const utilityLabels = {
+            'cooperative':    'Electric cooperative',
+            'investor-owned': 'Investor-owned utility',
+            'municipal':      'Municipal utility',
+            'consumer-owned': 'Consumer-owned utility',
+        };
+        const utilityColors = {
+            'cooperative':    '#10b981',
+            'investor-owned': '#3b82f6',
+            'municipal':      '#f59e0b',
+            'consumer-owned': '#8b5cf6',
+            'other':          '#6b7280',
+        };
+        html += `
+      <div class="panel-section">
+        <p class="panel-label">Top 3 states by utility type</p>
+        <p class="panel-subtext">Project count per category.</p>
+        ${renderCategoryBars(getTopStatesByUtility(), utilityLabels, utilityColors)}
+      </div>`;
+    }
+
+    html += `</div>`;
+    panel.innerHTML = html;
+    panel.dataset.projectSelected = 'false';
+}
+
+// ─── Project click handler ──────────────────────────────────────────────────
+function showProjectDetail(project) {
+    const panel = document.getElementById('info-panel');
+    const burdenOn = document.getElementById('energy-burden-toggle').checked;
+
+    let burdenBadge = '';
+    if (burdenOn && ENERGY_BURDEN_DATA[project.state]) {
+        const d = ENERGY_BURDEN_DATA[project.state];
+        const level = d.severe > 0 ? 'severe' : d.high > 0 ? 'high' : d.moderate > 10 ? 'moderate' : 'low';
+        const labelMap = { low: 'Low burden area', moderate: 'Moderate burden area', high: 'High burden area', severe: 'Severe burden area' };
+        burdenBadge = `
+      <div class="burden-badge burden-${level}">
+        <span class="legend-swatch" style="background:${BURDEN_COLORS[level]};display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;"></span>
+        ${labelMap[level]}
+      </div>`;
+    }
+
+    panel.innerHTML = `
+    <div class="info-placeholder">
+      <div class="panel-section">
+        <p class="panel-label">${project.state} · ${project.yearOfInterconnection || 'Year unknown'}</p>
+        <h3>${project.name}</h3>
+        <p>${project.city}, ${project.state}</p>
+        ${burdenBadge}
+      </div>
+      <div class="panel-section">
+        <table class="detail-table">
+          <tr><td>Ownership</td><td>${project.basicStructure}</td></tr>
+          <tr><td>Utility</td><td>${project.utility}</td></tr>
+          <tr><td>Utility type</td><td>${getUtilityTypeName(project.utilityType)}</td></tr>
+          <tr><td>Size (AC)</td><td>${project.sizeMwAc != null ? project.sizeMwAc + ' MWac' : '—'}</td></tr>
+          <tr><td>Size (DC)</td><td>${project.sizeMwDc != null ? project.sizeMwDc + ' MWdc' : '—'}</td></tr>
+          <tr><td>Status</td><td>${project.status}</td></tr>
+        </table>
+      </div>
+    </div>`;
+    panel.dataset.projectSelected = 'true';
 }
 
 function showProjectDetails(project) {
@@ -468,9 +754,11 @@ function setupEventListeners() {
         colorMode = this.value;
         updateLegend();
         filterProjects();
+        updateInfoPanel();
     });
     document.getElementById('energy-burden-toggle').addEventListener('change', function() {
         toggleEnergyBurden(this.checked);
+        updateInfoPanel();
     });
 }
 
@@ -616,6 +904,8 @@ function zoomToState() {
 
     if (!code) {
         map.setView([39.8283, -98.5795], 4);
+        refreshEnergyBurdenLayer();
+        updateInfoPanel();
         return;
     }
 
@@ -636,6 +926,7 @@ function zoomToState() {
     }
 
     refreshEnergyBurdenLayer();
+    updateInfoPanel();
 }
 
 

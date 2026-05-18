@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>U.S. Community-Owned Solar Projects Database</title>
+    <title>Community-Owned Solar Projects Relative to Energy Burden Population</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>U.S. Community-Owned Solar Projects Database Map</h1>
+            <h1>Community-Owned Solar Projects Relative to Energy Burden Population</h1>
             <p class="subtitle">Interactive map of community-owned solar projects across the United States</p>
         </header>
 
@@ -112,52 +112,47 @@
             <div class="resize-handle" id="resize-handle"></div>
             <div id="info-panel" class="info-panel">
                 <div class="info-placeholder">
-                    <h3>Welcome to the Community-Owned Solar Projects Map!</h3>
-                    <p>Click on any marker to view details about that community-owned solar project.</p>
+                  <div class="panel-section">
+                    <p class="panel-label">About this map</p>
+                    <h3>Community-owned solar &amp; energy burden</h3>
+                    <p>This map shows where community-owned solar projects exist relative to energy-burdened communities — households spending a disproportionate share of income on energy costs. Click any marker to explore a project.</p>
+                  </div>
 
-                    <div class="policy-highlight">
-                        <h4>Why Community-Owned Solar?</h4>
-                        <div class="policy-points">
-                            <div class="policy-point">
-                                <div>
-                                    <strong>• Access for All</strong>
-                                    <p>Community solar lets renters, low-income households, and those with unsuitable roofs access solar energy benefits without installing panels on their own home.</p>
-                                </div>
-                            </div>
-                            <div class="policy-point">
-                                <div>
-                                    <strong>• Lower Energy Bills</strong>
-                                    <p>Subscribers typically receive a credit on their electricity bill that reflects their share of the solar energy produced, often saving 5–15% annually.</p>
-                                </div>
-                            </div>
-                            <div class="policy-point">
-                                <div>
-                                    <strong>• Grid Decarbonization</strong>
-                                    <p>Community solar projects displace fossil-fuel generation at the grid level, contributing to state and federal clean energy mandates.</p>
-                                </div>
-                            </div>
-                            <div class="policy-point">
-                                <div>
-                                    <strong>• Local Economic Benefits</strong>
-                                    <p>Projects create local construction and operations jobs, and keep energy dollars circulating in communities rather than flowing to distant fuel suppliers.</p>
-                                </div>
-                            </div>
-                        </div>
+                  <div class="panel-section">
+                    <p class="panel-label">Energy burden categories</p>
+                    <p class="panel-subtext">Based on NREL's SLOPE tool — % of household income spent on home energy.</p>
+                    <div class="tier-list">
+                      <div class="tier-row">
+                        <div class="tier-swatch swatch-low"></div>
+                        <span class="tier-label">Low</span>
+                        <span class="tier-range">0% – 4%</span>
+                      </div>
+                      <div class="tier-row">
+                        <div class="tier-swatch swatch-moderate"></div>
+                        <span class="tier-label">Moderate</span>
+                        <span class="tier-range">4% – 7%</span>
+                      </div>
+                      <div class="tier-row">
+                        <div class="tier-swatch swatch-high"></div>
+                        <span class="tier-label">High</span>
+                        <span class="tier-range">7% – 10%</span>
+                      </div>
+                      <div class="tier-row">
+                        <div class="tier-swatch swatch-severe"></div>
+                        <span class="tier-label">Severe</span>
+                        <span class="tier-range">10% – 14%</span>
+                      </div>
                     </div>
+                  </div>
 
-                    <div class="info-section glossary">
-                        <h4>Key Terms Explained:</h4>
-                        <dl>
-                            <dt>Community-Owned Solar</dt>
-                            <dd>A shared solar installation whose electricity is credited to multiple subscribing households or businesses, allowing them to benefit from solar without rooftop panels.</dd>
-                            <dt>MW-AC / MW-DC</dt>
-                            <dd>AC (alternating current) capacity is the power delivered to the grid after conversion by inverters. DC (direct current) is the raw output of the solar panels. AC is typically 10–20% lower than DC.</dd>
-                            <dt>Interconnection Year</dt>
-                            <dd>The year the project was connected to the utility grid and began producing power for subscribers.</dd>
-                            <dt>Utility Type</dt>
-                            <dd>Whether the project is administered by an investor-owned utility, a consumer-owned or municipal utility, or a rural electric cooperative — each with different ownership and governance structures.</dd>
-                        </dl>
+                  <div class="panel-section">
+                    <p class="panel-label">Key finding — top 5 states</p>
+                    <p class="panel-subtext">% of projects by energy burden level. None are sited in high or severe tracts.</p>
+                    <div class="state-bars">
+                      <!-- add a bar div per state, see styles.css note below -->
                     </div>
+                    <p class="panel-caveat">This raises questions about whether LMI policies effectively direct projects to communities that need them most.</p>
+                  </div>
                 </div>
             </div>
         </div>

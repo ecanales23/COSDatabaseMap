@@ -671,6 +671,61 @@ input[type="text"]::placeholder {
     border: 1px solid var(--slate-100);
 }
 
+/* Info panel — energy burden context panel */
+.panel-section       { margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--slate-200); }
+.panel-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.panel-label         { font-size: 11px; font-weight: 600; text-transform: uppercase;
+                       letter-spacing: .06em; color: #64748b; margin: 0 0 .4rem; }
+.panel-section h3    { color: var(--slate-800); font-size: 1.1em; font-weight: 700;
+                       margin-bottom: 8px; line-height: 1.3; }
+.panel-section > p   { color: var(--slate-600); font-size: 0.9em; line-height: 1.6; }
+.panel-subtext       { font-size: 12px; color: #64748b; margin: 0 0 .5rem; line-height: 1.5; }
+.panel-caveat        { font-size: 12px; color: #64748b; border-left: 3px solid #cbd5e1;
+                       padding-left: 10px; margin-top: .75rem; line-height: 1.5; }
+.panel-category-block { margin-bottom: 1rem; }
+.panel-category-label { font-size: 12px; font-weight: 600; color: #374151; margin: 0 0 6px; }
+
+/* Energy burden tier list (welcome panel) */
+.tier-list { display: flex; flex-direction: column; gap: 8px; }
+.tier-row  { display: flex; align-items: center; gap: 10px; }
+.tier-swatch { width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid; flex-shrink: 0; }
+
+/* Colors match EB_CATEGORIES in app.js */
+.swatch-low      { background: #fde68a; border-color: #d97706; }
+.swatch-moderate { background: #f59e0b; border-color: #b45309; }
+.swatch-high     { background: #d97706; border-color: #92400e; }
+.swatch-severe   { background: #92400e; border-color: #78350f; }
+
+.tier-label { font-size: 0.88em; font-weight: 600; color: var(--slate-700); min-width: 72px; }
+.tier-range { font-size: 0.82em; color: var(--slate-500); }
+
+/* State bar chart (welcome panel) */
+.state-bars      { margin: 10px 0; }
+.state-bar-row   { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+.state-bar-label { min-width: 28px; color: #64748b; }
+.state-bar-track { flex: 1; height: 8px; background: #f1f5f9; border-radius: 4px;
+                   overflow: hidden; display: flex; }
+.state-bar-pct   { font-size: 11px; color: #94a3b8; min-width: 32px; text-align: right; }
+
+/* Burden legend chips */
+.burden-legend      { display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap; }
+.burden-legend span { display: flex; align-items: center; gap: 5px;
+                      font-size: 11px; color: #64748b; }
+.legend-swatch      { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+
+/* Energy burden badge — colors match EB_CATEGORIES in app.js */
+.burden-badge    { display: inline-flex; align-items: center; font-size: 12px;
+                   padding: 4px 10px; border-radius: 4px; margin: 6px 0; font-weight: 600; }
+.burden-low      { background: #fef9c3; color: #92400e; border: 1px solid #d97706; }
+.burden-moderate { background: #fde68a; color: #92400e; border: 1px solid #b45309; }
+.burden-high     { background: #d97706; color: #fff;    border: 1px solid #92400e; }
+.burden-severe   { background: #92400e; color: #fff;    border: 1px solid #78350f; }
+
+/* Project detail table */
+.detail-table    { width: 100%; font-size: 13px; border-collapse: collapse; }
+.detail-table td { padding: 6px 0; border-bottom: 0.5px solid #e2e8f0; vertical-align: top; }
+.detail-table td:first-child { color: #64748b; width: 42%; }
+
 /* Footer */
 footer {
     text-align: center;
