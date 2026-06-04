@@ -735,6 +735,26 @@ footer {
     border-top: 1px solid var(--slate-200);
     margin-top: 8px;
 }
+.footer-sources-label {
+    font-weight: 600;
+    color: var(--slate-600);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75em;
+}
+.footer-sources {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px;
+}
+.footer-sources li {
+    display: inline;
+}
+.footer-sources li + li::before {
+    content: ' · ';
+    color: var(--slate-400);
+}
 
 /* Custom Leaflet styles */
 .leaflet-marker-icon {
