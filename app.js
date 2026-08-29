@@ -212,7 +212,7 @@ function setupResizeHandle() {
 function initMap() {
     map = L.map('map', { zoomControl: true }).setView([39.8283, -98.5795], 4);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2j66_1_bdc1c1c1638e90dfd3765aa1', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19
