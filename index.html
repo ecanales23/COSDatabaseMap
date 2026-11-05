@@ -173,7 +173,8 @@
     <script src="app.js"></script>
     <script>
       function sendHeight() {
-        const height = document.documentElement.scrollHeight;
+        const wrapper = document.querySelector('.container');
+        const height = Math.ceil(wrapper.getBoundingClientRect().bottom + window.scrollY);
         window.parent.postMessage({ type: 'cos-height', height: height }, '*');
       }
       window.addEventListener('load', sendHeight);

@@ -43,7 +43,6 @@ body {
     line-height: 1.65;
     color: var(--slate-700);
     background: linear-gradient(135deg, var(--slate-100) 0%, var(--slate-200) 100%);
-    min-height: 600px;
 }
 
 .container {
@@ -51,7 +50,6 @@ body {
     margin: 0 auto;
     padding: 24px;
     background-color: white;
-    min-height: 600px;
     box-shadow: var(--shadow-lg);
 }
 
