@@ -12,7 +12,8 @@ def clean_text(value):
         return 'Unknown'
     text = str(value).strip()
     text = ' '.join(text.split())  # collapse whitespace
-    text = text.replace("'", "\\'").replace('"', '\\"')
+    # No manual quote escaping: json.dumps() escapes the output correctly,
+    # and escaping here left literal backslashes in names (e.g. "Clay County\'s").
     return text
 
 def parse_year(year_str):
